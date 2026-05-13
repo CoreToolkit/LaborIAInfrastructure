@@ -1,0 +1,99 @@
+name: Terraform Deploy
+
+on:
+  repository_dispatch:
+    types: [backend-updated, frontend-updated]
+
+  workflow_dispatch:
+    inputs:
+      backend_image_tag:
+        description: Tag de imagen backend
+        required: false
+        default: ""
+      frontend_image_tag:
+        description: Tag de imagen frontend
+        required: false
+        default: ""
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Resolve image tags
+        id: tags
+        shell: bash
+        run: |
+          backend_tag=""
+          frontend_tag=""
+
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            service="${{ github.event.client_payload.service }}"
+            image_tag="${{ github.event.client_payload.image_tag }}"
+
+            if [ "$service" = "backend" ]; then
+              backend_tag="$image_tag"
+            elif [ "$service" = "frontend" ]; then
+              frontend_tag="$image_tag"
+            fi
+          else
+            backend_tag="${{ inputs.backend_image_tag }}"
+            frontend_tag="${{ inputs.frontend_image_tag }}"
+          fi
+
+          if [ -z "$backend_tag" ]; then
+            backend_tag="$(terraform output -raw backend_image_tag 2>/dev/null || true)"
+          fi
+          if [ -z "$frontend_tag" ]; then
+            frontend_tag="$(terraform output -raw frontend_image_tag 2>/dev/null || true)"
+          fi
+
+          if [ -z "$backend_tag" ]; then
+            backend_tag="latest"
+          fi
+          if [ -z "$frontend_tag" ]; then
+            frontend_tag="latest"
+          fi
+
+          echo "backend_tag=$backend_tag" >> "$GITHUB_OUTPUT"
+          echo "frontend_tag=$frontend_tag" >> "$GITHUB_OUTPUT"
+          echo "backend_tag=$backend_tag"
+          echo "frontend_tag=$frontend_tag"
+
+      - name: Terraform Fmt
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -input=false \
+            -var-file="terraform.tfvars" \
+            -var="backend_image_tag=${{ steps.tags.outputs.backend_tag }}" \
+            -var="frontend_image_tag=${{ steps.tags.outputs.frontend_tag }}" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false tfplan
+
+      - name: Show outputs
+        run: terraform output
