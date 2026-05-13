@@ -128,6 +128,11 @@ variable "frontend_public_url" {
   type        = string
 }
 
+variable "backend_public_fqdn" {
+  description = "FQDN canonico del backend (sin protocolo) para frontend envs"
+  type        = string
+}
+
 variable "secret_names" {
   description = "Nombres de secretos en Key Vault"
   type = object({
