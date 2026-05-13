@@ -1,11 +1,11 @@
 output "backend_url" {
   description = "URL publica del backend"
-  value       = "https://${azurerm_container_app.backend.latest_revision_fqdn}"
+  value       = "https://${regexreplace(azurerm_container_app.backend.latest_revision_fqdn, "--[a-z0-9]+$", "") }"
 }
 
 output "frontend_url" {
   description = "URL publica del frontend"
-  value       = "https://${azurerm_container_app.frontend.latest_revision_fqdn}"
+  value       = "https://${regexreplace(azurerm_container_app.frontend.latest_revision_fqdn, "--[a-z0-9]+$", "") }"
 }
 
 output "backend_image_tag" {

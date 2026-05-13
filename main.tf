@@ -379,12 +379,13 @@ resource "azurerm_container_app" "frontend" {
 
       env {
         name  = "NEXT_PUBLIC_BACKEND_URL"
-        value = "https://${azurerm_container_app.backend.latest_revision_fqdn}"
+        # Use canonical backend host (strip revision suffix like --0000001)
+        value = "https://${regexreplace(azurerm_container_app.backend.latest_revision_fqdn, "--[a-z0-9]+$", "") }"
       }
 
       env {
         name  = "NEXT_PUBLIC_BACKEND_WS_BASE"
-        value = "wss://${azurerm_container_app.backend.latest_revision_fqdn}/api/ws"
+        value = "wss://${regexreplace(azurerm_container_app.backend.latest_revision_fqdn, "--[a-z0-9]+$", "") }/api/ws"
       }
     }
   }
