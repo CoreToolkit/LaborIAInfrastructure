@@ -6,8 +6,7 @@ environment               = "prod"
 backend_image_repository  = "backend"
 frontend_image_repository = "frontend"
 
-frontend_public_url = "https://ca-frontend-prod--3xqhte7.wonderfulrock-bb5d90f5.eastus.azurecontainerapps.io"
-
+frontend_public_url = "https://ca-frontend-prod.wonderfulrock-bb5d90f5.eastus.azurecontainerapps.io"
 
 container_app_env_name = "cae-laboria-prod"
 backend_app_name       = "ca-backend-prod"
